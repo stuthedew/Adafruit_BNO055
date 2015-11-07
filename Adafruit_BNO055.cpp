@@ -232,23 +232,31 @@ void Adafruit_BNO055::getRevInfo(adafruit_bno055_rev_info_t* info)
             fully calibrated.
 */
 /**************************************************************************/
-void Adafruit_BNO055::getCalibration(uint8_t* sys, uint8_t* gyro, uint8_t* accel, uint8_t* mag) {
-  uint8_t calData = read8(BNO055_CALIB_STAT_ADDR);
-  if (sys != NULL) {
-    *sys = (calData >> 6) & 0x03;
-  }
-  if (gyro != NULL) {
-    *gyro = (calData >> 4) & 0x03;
-  }
-  if (accel != NULL) {
-    *accel = (calData >> 2) & 0x03;
-  }
-  if (mag != NULL) {
-    *mag = calData & 0x03;
+void Adafruit_BNO055::getCalibration(adafruit_bno055_cal_data_t* data) {
+//TODO: test function
+      if (data != NULL) {
+          readlen(ACCEL_OFFSET_X_LSB, data->raw, 22);
+      }
+
+}
+/**************************************************************************/
+/*!
+    @brief  Sets current calibration data.  Each value should be a uint8_t
+            pointer and it will be set to 0 if not calibrated and 3 if
+            fully calibrated.
+*/
+/**************************************************************************/
+void Adafruit_BNO055::setCalibrationData(adafruit_bno055_cal_data_t* data) {
+//TODO: test function
+  if (data != NULL) {
+      for(){
+      write8(ACCEL_OFFSET_X_LSB + i,  *data->raw[i]);
+    }
   }
 }
 
 /**************************************************************************/
+
 /*!
     @brief  Gets the temperature in degrees celsius
 */
@@ -392,7 +400,26 @@ bool Adafruit_BNO055::getEvent(sensors_event_t *event)
 /***************************************************************************
  PRIVATE FUNCTIONS
  ***************************************************************************/
+ /**************************************************************************/
+ /*!
+     @brief  Writes an 8 bit value over I2C
+ */
+ /**************************************************************************/
+ bool Adafruit_BNO055::write8(adafruit_bno055_reg_t reg, byte value)
+ {
+   Wire.beginTransmission(_address);
+   #if ARDUINO >= 100
+     Wire.write((uint8_t)reg);
+     Wire.write((uint8_t)value);
+   #else
+     Wire.send(reg);
+     Wire.send(value);
+   #endif
+   Wire.endTransmission();
 
+   /* ToDo: Check for error! */
+   return true;
+ }
 /**************************************************************************/
 /*!
     @brief  Writes an 8 bit value over I2C

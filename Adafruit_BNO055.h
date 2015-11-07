@@ -227,6 +227,45 @@ class Adafruit_BNO055 : public Adafruit_Sensor
       uint8_t  bl_rev;
     } adafruit_bno055_rev_info_t;
 
+    typedef union
+    {
+        struct
+        {
+            /* Accelerometer Offset registers */
+            uint8_t
+                ACCEL_OFFSET_X_LSB,
+                ACCEL_OFFSET_X_MSB,
+                ACCEL_OFFSET_Y_LSB,
+                ACCEL_OFFSET_Y_MSB,
+                ACCEL_OFFSET_Z_LSB,
+                ACCEL_OFFSET_Z_MSB,
+
+            /* Magnetometer Offset registers */
+                MAG_OFFSET_X_LSB,
+                MAG_OFFSET_X_MSB,
+                MAG_OFFSET_Y_LSB,
+                MAG_OFFSET_Y_MSB,
+                MAG_OFFSET_Z_LSB,
+                MAG_OFFSET_Z_MSB,
+
+            /* Gyroscope Offset register s*/
+                GYRO_OFFSET_X_LSB,
+                GYRO_OFFSET_X_MSB,
+                GYRO_OFFSET_Y_LSB,
+                GYRO_OFFSET_Y_MSB,
+                GYRO_OFFSET_Z_LSB,
+                GYRO_OFFSET_Z_MSB,
+
+            /* Radius registers */
+                ACCEL_RADIUS_LSB,
+                ACCEL_RADIUS_MSB,
+                MAG_RADIUS_LSB,
+                MAG_RADIUS_MSB_ADDR;
+
+        };
+        uint8_t raw[ 22 ];
+    } adafruit_bno055_cal_data_t;
+
     typedef enum
     {
       VECTOR_ACCELEROMETER = BNO055_ACCEL_DATA_X_LSB_ADDR,
@@ -249,6 +288,8 @@ class Adafruit_BNO055 : public Adafruit_Sensor
                                 uint8_t *system_error);
     void  displaySystemStatus ( void );
     void  getCalibration      ( uint8_t* system, uint8_t* gyro, uint8_t* accel, uint8_t* mag);
+    void getCalibrationData   ( adafruit_bno055_cal_data_t* );
+    void setCalibrationData   ( adafruit_bno055_cal_data_t* );
 
     imu::Vector<3>  getVector ( adafruit_vector_type_t vector_type );
     imu::Quaternion getQuat   ( void );
