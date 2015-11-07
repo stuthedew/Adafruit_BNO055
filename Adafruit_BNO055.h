@@ -288,6 +288,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
                                 uint8_t *system_error);
     void  displaySystemStatus ( void );
     void  getCalibration      ( uint8_t* system, uint8_t* gyro, uint8_t* accel, uint8_t* mag);
+    void printCalibrationData ();
     void getCalibrationData   ( adafruit_bno055_cal_data_t* );
     void setCalibrationData   ( adafruit_bno055_cal_data_t* );
 
