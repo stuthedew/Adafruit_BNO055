@@ -289,8 +289,8 @@ class Adafruit_BNO055 : public Adafruit_Sensor
     void  displaySystemStatus ( void );
     void  getCalibration      ( uint8_t* system, uint8_t* gyro, uint8_t* accel, uint8_t* mag);
     void printCalibrationData ();
-    void getCalibrationData   ( adafruit_bno055_cal_data_t* );
-    void setCalibrationData   ( adafruit_bno055_cal_data_t* );
+    bool getCalibrationData   ( adafruit_bno055_cal_data_t* );
+    bool setCalibrationData   ( adafruit_bno055_cal_data_t* );
 
     imu::Vector<3>  getVector ( adafruit_vector_type_t vector_type );
     imu::Quaternion getQuat   ( void );
@@ -304,6 +304,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
     byte  read8   ( adafruit_bno055_reg_t );
     bool  readLen ( adafruit_bno055_reg_t, byte* buffer, uint8_t len );
     bool  write8  ( adafruit_bno055_reg_t, byte value );
+    bool  writeLen( adafruit_bno055_reg_t reg, byte* buffer, uint8_t len);
 
     uint8_t _address;
     int32_t _sensorID;

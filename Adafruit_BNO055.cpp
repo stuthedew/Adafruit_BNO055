@@ -245,18 +245,35 @@ void Adafruit_BNO055::getCalibration(uint8_t* sys, uint8_t* gyro, uint8_t* accel
     *mag = calData & 0x03;
   }
 }
+
+/**************************************************************************/
+/*!
+    @brief  Gets current calibration data.
+*/
+/**************************************************************************/
+bool Adafruit_BNO055::getCalibrationData(adafruit_bno055_cal_data_t* data) {
+
+    //TODO: test function
+      if (data != NULL) {
+          if(readLen(ACCEL_OFFSET_X_LSB_ADDR, data->raw, 22)){
+            return true;
+          }
+    }
+    return false;
+}
 /**************************************************************************/
 /*!
     @brief  Sets current calibration data.
 */
 /**************************************************************************/
-void Adafruit_BNO055::setCalibrationData(adafruit_bno055_cal_data_t* data) {
+bool Adafruit_BNO055::setCalibrationData( adafruit_bno055_cal_data_t* data) {
 //TODO: test function
   if (data != NULL) {
-      for(int i = 0; i < 22; i++){
-      write8((ACCEL_OFFSET_X_LSB + i),  *data->raw[i]);
+    if(writeLen(ACCEL_OFFSET_X_LSB_ADDR, data->raw, 22)){
+        return true;
     }
   }
+  return false;
 }
 /**************************************************************************/
 /*!
@@ -432,6 +449,28 @@ bool Adafruit_BNO055::write8(adafruit_bno055_reg_t reg, byte value)
     Wire.send(reg);
     Wire.send(value);
   #endif
+  Wire.endTransmission();
+
+  /* ToDo: Check for error! */
+  return true;
+}
+/**************************************************************************/
+/*!
+    @brief  Writes an 8 bit value over I2C
+*/
+/**************************************************************************/
+bool Adafruit_BNO055::writeLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t len)
+{
+  Wire.beginTransmission(_address);
+  Wire.write((uint8_t)reg);
+  for (uint8_t i = 0; i < len; i++)
+  {
+      #if ARDUINO >= 100
+        Wire.write((uint8_t)buffer[i]);
+      #else
+        Wire.send(buffer[i]);
+      #endif
+  }
   Wire.endTransmission();
 
   /* ToDo: Check for error! */
