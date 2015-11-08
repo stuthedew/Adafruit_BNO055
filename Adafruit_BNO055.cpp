@@ -37,7 +37,7 @@
     @brief  Instantiates a new Adafruit_BNO055 class
 */
 /**************************************************************************/
-Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address)
+Adafruit_BNO055::Adafruit_BNO055( int32_t sensorID, uint8_t address)
 {
   _sensorID = sensorID;
   _address = address;
@@ -57,12 +57,13 @@ Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address)
 
 /**************************************************************************/
 /*!
-    @brief  Sets up the HW
+    @brief  Sets up the HW. Mode = operating mode. cal = pointer to BNO055_CAL_LEN byte
+    array of calibration data.
 */
 /**************************************************************************/
-bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode, uint8_t* cal)
+bool Adafruit_BNO055::begin(bool useEEPROM, uint8_t* cal, adafruit_bno055_opmode_t mode )
 {
-      _calData = cal;
+
   /* Enable I2C */
   Wire.begin();
 
@@ -89,11 +90,7 @@ bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode, uint8_t* cal)
   }
   delay(50);
 
-  if(_calData != NULL){
-      if(!setCalibrationData(_calData)){
-          return false;  // still not? ok bail
-    }
-  }
+
 
   /* Set to normal power mode */
   write8(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL);
@@ -113,10 +110,32 @@ bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode, uint8_t* cal)
 
   write8(BNO055_SYS_TRIGGER_ADDR, 0x0);
   delay(10);
+bool calibrated = 0;
+/* Set the requested operating mode (see section 3.3) */
+
+delay(1000);
+Serial.print(F("EEPROM Active: Ox"));
+Serial.println(EEPROM[_eeprom.activeAdr], HEX);
+  if(cal != NULL){
+      Serial.println(F("Getting calibration data from passed array"));
+      memmove(_calData.raw, cal, BNO055_CAL_LEN);
+    }
+    else if(useEEPROM && EEPROM[_eeprom.activeAdr] == _eeprom.activeCheck){
+        EEPROM.get(_eeprom.startAddr, _calData.raw);
+    }
+  else{
+      Serial.println(F("Setting calibration data from manual calibration"));
+      calibrate( useEEPROM );
+      calibrated = 1;
+  }
+
+  if(!calibrated){
+      setCalibrationData(_calData.raw);
+  }
 
 
-  /* Set the requested operating mode (see section 3.3) */
-  setMode(mode);
+setMode(mode);
+
   delay(20);
 
   return true;
@@ -266,21 +285,31 @@ void Adafruit_BNO055::getCalibration(uint8_t* sys, uint8_t* gyro, uint8_t* accel
 
 /**************************************************************************/
 /*!
-    @brief  Gets current calibration data.
+    @brief  Gets current calibration data and saves it custom array.
 */
 /**************************************************************************/
-bool Adafruit_BNO055::getCalibrationData( void) {
+bool Adafruit_BNO055::getCalibrationData( uint8_t* calData) {
 
     //TODO: test function
     bool returnVal = 0;
     adafruit_bno055_opmode_t modeback = _mode;
     setMode(OPERATION_MODE_CONFIG);
-          if(readLen(ACCEL_OFFSET_X_LSB_ADDR, _calData, 22)){
+          if(readLen(ACCEL_OFFSET_X_LSB_ADDR, calData, BNO055_CAL_LEN)){
             returnVal = 1;
           }
           setMode(modeback);
           delay(25);
     return returnVal;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Gets current calibration data and sets it to private member _calData.
+*/
+/**************************************************************************/
+bool Adafruit_BNO055::getCalibrationData( void) {
+    adafruit_bno055_cal_data_t* ptr = &_calData;
+    return getCalibrationData( ptr->raw );
 }
 /**************************************************************************/
 /*!
@@ -297,7 +326,7 @@ bool Adafruit_BNO055::setCalibrationData( uint8_t* calData) {
 
     delay(25);
 
-    if(writeLen(ACCEL_OFFSET_X_LSB_ADDR, calData, 22)){
+    if(writeLen(ACCEL_OFFSET_X_LSB_ADDR, calData, BNO055_CAL_LEN)){
         returnVal = 1;
     }
     setMode(modeback);
@@ -313,15 +342,71 @@ bool Adafruit_BNO055::setCalibrationData( uint8_t* calData) {
 /**************************************************************************/
 void Adafruit_BNO055::printCalibrationData( void ){
     getCalibrationData();
-    for(int i = 0; i < 22; i++){
-        Serial.print(_calData[i]);
-        if(i == 21){
+    for(int i = 0; i < BNO055_CAL_LEN; i++){
+        Serial.print(_calData.raw[i]);
+        if(i == BNO055_CAL_LEN - 1){
             break;
         }
         Serial.print(F(", "));
     }
     Serial.println();
 }
+
+/**************************************************************************/
+
+/*!
+    @brief  Calibrate routine. Optional storage to EEPROM for reuse on power off.
+*/
+/**************************************************************************/
+bool Adafruit_BNO055::calibrate( bool useEEPROM ) {
+    adafruit_bno055_opmode_t modeback = _mode;
+
+    /* Switch to config mode (just in case since this is the default) */
+    setMode(OPERATION_MODE_NDOF);
+
+
+    uint8_t system, gyro, accel, mag = 0;
+    do{
+        getCalibration(&system, &gyro, &accel, &mag);
+        Serial.print(F("CALIBRATION: Sys="));
+        Serial.print(system, DEC);
+        Serial.print(F(" Gyro="));
+        Serial.print(gyro, DEC);
+        Serial.print(F(" Accel="));
+        Serial.print(accel, DEC);
+        Serial.print(F(" Mag="));
+        Serial.println(mag, DEC);
+        delay(100);
+    }
+    while(!(system == 3 && gyro == 3 && accel == 3 && mag == 3));
+
+
+    adafruit_bno055_cal_data_t* ptr = &_calData;
+    getCalibrationData( ptr->raw ); //get calibration data from BNO055
+    printCalibrationData();
+    setMode(modeback);
+    
+    if(useEEPROM){
+        EEPROM.put(_eeprom.startAddr, _calData);
+        EEPROM.update(_eeprom.activeAdr, _eeprom.activeCheck);
+
+        adafruit_bno055_cal_data_t testCal;
+        EEPROM.get(_eeprom.startAddr, testCal);
+
+        Serial.println(F("Getting calibration data from EEPROM:"));
+        for(int i = 0; i < BNO055_CAL_LEN; i++){
+            Serial.print(testCal.raw[i]);
+            if(i == BNO055_CAL_LEN - 1){
+                break;
+            }
+            Serial.print(F(", "));
+        }
+        Serial.println();
+
+    }
+    Serial.println(F("Calibration done..."));
+}
+
 
 /**************************************************************************/
 

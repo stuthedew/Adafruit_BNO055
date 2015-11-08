@@ -33,12 +33,15 @@
  #include <Wire.h>
 #endif
 
+#include <EEPROM.h>
 #include <Adafruit_Sensor.h>
 #include <utility/imumaths.h>
 
 #define BNO055_ADDRESS_A (0x28)
 #define BNO055_ADDRESS_B (0x29)
 #define BNO055_ID        (0xA0)
+
+#define BNO055_CAL_LEN   (22) //Length of calibration data
 
 class Adafruit_BNO055 : public Adafruit_Sensor
 {
@@ -226,7 +229,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
       uint16_t sw_rev;
       uint8_t  bl_rev;
     } adafruit_bno055_rev_info_t;
-/*
+
     typedef union
     {
         struct
@@ -263,9 +266,23 @@ class Adafruit_BNO055 : public Adafruit_Sensor
                 MAG_RADIUS_MSB_ADDR;
 
         };
-        uint8_t raw[ 22 ];
+        uint8_t raw[ BNO055_CAL_LEN ];
     } adafruit_bno055_cal_data_t;
-*/
+
+
+
+    typedef struct adafruit_bno055_eeprom_t
+        {
+            const   uint8_t activeCheck;
+                    int
+                            startAddr,
+                            activeAdr;
+
+
+            adafruit_bno055_eeprom_t(int s_addr = 0):activeCheck(0xAB), startAddr(s_addr), activeAdr(s_addr + BNO055_CAL_LEN){}
+        }adafruit_bno055_eeprom_t;
+
+
     typedef enum
     {
       VECTOR_ACCELEROMETER = BNO055_ACCEL_DATA_X_LSB_ADDR,
@@ -278,20 +295,22 @@ class Adafruit_BNO055 : public Adafruit_Sensor
 
     Adafruit_BNO055 ( int32_t sensorID = -1, uint8_t address = BNO055_ADDRESS_A );
 
-    bool  begin               ( adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF, uint8_t* calData = NULL );
-    void  setMode             ( adafruit_bno055_opmode_t mode );
-    void  getRevInfo          ( adafruit_bno055_rev_info_t* );
-    void  displayRevInfo      ( void );
-    void  setExtCrystalUse    ( boolean usextal );
-    void  getSystemStatus     ( uint8_t *system_status,
-                                uint8_t *self_test_result,
-                                uint8_t *system_error);
-    void  displaySystemStatus ( void );
-    void  getCalibration      ( uint8_t* system, uint8_t* gyro, uint8_t* accel, uint8_t* mag);
-    void printCalibrationData ( void );
-    bool getCalibrationData   ( void );
-    bool setCalibrationData   ( uint8_t *calData );
-    bool calibrate   ( void );
+    bool  begin                ( bool useEEPROM = true, uint8_t* cal = NULL, adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF );
+    void  setMode              ( adafruit_bno055_opmode_t mode );
+    void  getRevInfo           ( adafruit_bno055_rev_info_t* );
+    void  displayRevInfo       ( void );
+    void  setExtCrystalUse     ( boolean usextal );
+    void  getSystemStatus      ( uint8_t *system_status,
+                                 uint8_t *self_test_result,
+                                 uint8_t *system_error);
+    void  displaySystemStatus  ( void );
+    void  getCalibration       ( uint8_t* system, uint8_t* gyro, uint8_t* accel, uint8_t* mag);
+    void  printCalibrationData ( void );
+    bool  getCalibrationData   ( uint8_t *calData );
+    bool  getCalibrationData   ( void );
+    bool  setCalibrationData   ( uint8_t *calData );
+    bool  calibrate            ( bool storeEEPROM = true );
+    bool  calibrate            ( uint8_t *calData, bool storeEEPROM = true );
 
     imu::Vector<3>  getVector ( adafruit_vector_type_t vector_type );
     imu::Quaternion getQuat   ( void );
@@ -302,15 +321,17 @@ class Adafruit_BNO055 : public Adafruit_Sensor
     void  getSensor ( sensor_t* );
 
   private:
-    byte  read8   ( adafruit_bno055_reg_t );
-    bool  readLen ( adafruit_bno055_reg_t, byte* buffer, uint8_t len );
-    bool  write8  ( adafruit_bno055_reg_t, byte value );
-    bool  writeLen( adafruit_bno055_reg_t reg, byte* buffer, uint8_t len);
+    byte  read8     ( adafruit_bno055_reg_t );
+    bool  readLen   ( adafruit_bno055_reg_t, byte* buffer, uint8_t len );
+    bool  write8    ( adafruit_bno055_reg_t, byte value );
+    bool  writeLen  ( adafruit_bno055_reg_t reg, byte* buffer, uint8_t len);
+
 
     uint8_t _address;
     int32_t _sensorID;
     adafruit_bno055_opmode_t _mode;
-    uint8_t* _calData;
+    adafruit_bno055_cal_data_t _calData;
+    adafruit_bno055_eeprom_t _eeprom;
 };
 
 #endif
