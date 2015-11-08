@@ -226,12 +226,12 @@ class Adafruit_BNO055 : public Adafruit_Sensor
       uint16_t sw_rev;
       uint8_t  bl_rev;
     } adafruit_bno055_rev_info_t;
-
+/*
     typedef union
     {
         struct
         {
-            /* Accelerometer Offset registers */
+            // Accelerometer Offset registers
             uint8_t
                 ACCEL_OFFSET_X_LSB,
                 ACCEL_OFFSET_X_MSB,
@@ -240,7 +240,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
                 ACCEL_OFFSET_Z_LSB,
                 ACCEL_OFFSET_Z_MSB,
 
-            /* Magnetometer Offset registers */
+            // Magnetometer Offset registers
                 MAG_OFFSET_X_LSB,
                 MAG_OFFSET_X_MSB,
                 MAG_OFFSET_Y_LSB,
@@ -248,7 +248,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
                 MAG_OFFSET_Z_LSB,
                 MAG_OFFSET_Z_MSB,
 
-            /* Gyroscope Offset register s*/
+            // Gyroscope Offset register
                 GYRO_OFFSET_X_LSB,
                 GYRO_OFFSET_X_MSB,
                 GYRO_OFFSET_Y_LSB,
@@ -256,7 +256,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
                 GYRO_OFFSET_Z_LSB,
                 GYRO_OFFSET_Z_MSB,
 
-            /* Radius registers */
+            // Radius registers
                 ACCEL_RADIUS_LSB,
                 ACCEL_RADIUS_MSB,
                 MAG_RADIUS_LSB,
@@ -265,7 +265,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
         };
         uint8_t raw[ 22 ];
     } adafruit_bno055_cal_data_t;
-
+*/
     typedef enum
     {
       VECTOR_ACCELEROMETER = BNO055_ACCEL_DATA_X_LSB_ADDR,
@@ -278,7 +278,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
 
     Adafruit_BNO055 ( int32_t sensorID = -1, uint8_t address = BNO055_ADDRESS_A );
 
-    bool  begin               ( adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF );
+    bool  begin               ( adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF, uint8_t* calData = NULL );
     void  setMode             ( adafruit_bno055_opmode_t mode );
     void  getRevInfo          ( adafruit_bno055_rev_info_t* );
     void  displayRevInfo      ( void );
@@ -288,9 +288,10 @@ class Adafruit_BNO055 : public Adafruit_Sensor
                                 uint8_t *system_error);
     void  displaySystemStatus ( void );
     void  getCalibration      ( uint8_t* system, uint8_t* gyro, uint8_t* accel, uint8_t* mag);
-    void printCalibrationData ();
-    bool getCalibrationData   ( adafruit_bno055_cal_data_t* );
-    bool setCalibrationData   ( adafruit_bno055_cal_data_t* );
+    void printCalibrationData ( void );
+    bool getCalibrationData   ( void );
+    bool setCalibrationData   ( uint8_t *calData );
+    bool calibrate   ( void );
 
     imu::Vector<3>  getVector ( adafruit_vector_type_t vector_type );
     imu::Quaternion getQuat   ( void );
@@ -309,6 +310,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
     uint8_t _address;
     int32_t _sensorID;
     adafruit_bno055_opmode_t _mode;
+    uint8_t* _calData;
 };
 
 #endif

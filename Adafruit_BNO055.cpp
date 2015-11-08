@@ -41,7 +41,15 @@ Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address)
 {
   _sensorID = sensorID;
   _address = address;
+
 }
+
+/**************************************************************************/
+/*!
+    @brief  Instantiates a new Adafruit_BNO055 class
+*/
+/**************************************************************************/
+
 
 /***************************************************************************
  PUBLIC FUNCTIONS
@@ -52,8 +60,9 @@ Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address)
     @brief  Sets up the HW
 */
 /**************************************************************************/
-bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode)
+bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode, uint8_t* cal)
 {
+      _calData = cal;
   /* Enable I2C */
   Wire.begin();
 
@@ -79,6 +88,7 @@ bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode)
   }
   delay(50);
 
+
   /* Set to normal power mode */
   write8(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL);
   delay(10);
@@ -97,6 +107,13 @@ bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode)
 
   write8(BNO055_SYS_TRIGGER_ADDR, 0x0);
   delay(10);
+
+  if(_calData != NULL){
+      Serial.println(F("set cal data begin"));
+      if(!setCalibrationData(_calData)){
+          return false;  // still not? ok bail
+    }
+  }
   /* Set the requested operating mode (see section 3.3) */
   setMode(mode);
   delay(20);
@@ -251,41 +268,53 @@ void Adafruit_BNO055::getCalibration(uint8_t* sys, uint8_t* gyro, uint8_t* accel
     @brief  Gets current calibration data.
 */
 /**************************************************************************/
-bool Adafruit_BNO055::getCalibrationData(adafruit_bno055_cal_data_t* data) {
+bool Adafruit_BNO055::getCalibrationData( void) {
 
     //TODO: test function
-      if (data != NULL) {
-          if(readLen(ACCEL_OFFSET_X_LSB_ADDR, data->raw, 22)){
-            return true;
+    bool returnVal = 0;
+    adafruit_bno055_opmode_t modeback = _mode;
+    setMode(OPERATION_MODE_CONFIG);
+          if(readLen(ACCEL_OFFSET_X_LSB_ADDR, _calData, 22)){
+            returnVal = 1;
           }
-    }
-    return false;
+          setMode(modeback);
+          delay(25);
+    return returnVal;
 }
 /**************************************************************************/
 /*!
     @brief  Sets current calibration data.
 */
 /**************************************************************************/
-bool Adafruit_BNO055::setCalibrationData( adafruit_bno055_cal_data_t* data) {
+bool Adafruit_BNO055::setCalibrationData( uint8_t* calData) {
 //TODO: test function
-  if (data != NULL) {
-    if(writeLen(ACCEL_OFFSET_X_LSB_ADDR, data->raw, 22)){
-        return true;
+    bool returnVal = 0;
+    adafruit_bno055_opmode_t modeback = _mode;
+    setMode(OPERATION_MODE_CONFIG);
+    delay(25);
+    if(writeLen(ACCEL_OFFSET_X_LSB_ADDR, calData, 22)){
+        returnVal = 1;
     }
-  }
-  return false;
+    setMode(modeback);
+    delay(25);
+    return returnVal;
 }
+
 /**************************************************************************/
 /*!
     @brief  Prints current calibration data.
 */
 /**************************************************************************/
 void Adafruit_BNO055::printCalibrationData( void ){
-    adafruit_bno055_cal_data_t calData;
-    getCalibrationData(&calData);
+    getCalibrationData();
     for(int i = 0; i < 22; i++){
-        Serial.println(calData.raw[i]);
+        Serial.print(_calData[i]);
+        if(i == 21){
+            break;
+        }
+        Serial.print(F(", "));
     }
+    Serial.println();
 }
 
 /**************************************************************************/
@@ -461,6 +490,12 @@ bool Adafruit_BNO055::write8(adafruit_bno055_reg_t reg, byte value)
 /**************************************************************************/
 bool Adafruit_BNO055::writeLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t len)
 {
+    Serial.println(F("Set Cal data: "));
+    for(int i = 0; i < 22; i++){
+        Serial.print(buffer[i]);
+        Serial.print(F(", "));
+    }
+    Serial.println();
   Wire.beginTransmission(_address);
   Wire.write((uint8_t)reg);
   for (uint8_t i = 0; i < len; i++)
